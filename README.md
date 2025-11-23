@@ -130,28 +130,68 @@ https://www.bilibili.com/video/BV1eXyHBaEJY/?spm_id_from=333.1387.homepage.video
 
 ```
 zaio_app_v2/
-├── main.py                    # 主程序入口
-├── log_view_controller.py     # 日志显示控制器
-├── requirements.txt           # 项目依赖
-├── assets/                    # UI 资源文件
-│   ├── doll_on.png           # 娃娃亮灯图
-│   ├── doll_off.png          # 娃娃灭灯图
-│   ├── top_gradient.png       # 顶部渐变
-│   ├── bottom_gradient.png    # 底部渐变
-│   ├── side_gradient.png      # 右侧渐变
-│   └── ZH80.ttf              # 中文字体
-├── config/                    # 配置目录
-│   └── api_key.txt           # API 密钥存储（自动生成）
-├── data/                      # 数据目录
-│   ├── logs/                 # 对话日志（按日期）
-│   ├── prompt_logs/          # LLM 提示词日志
-│   ├── perspective_trees/    # 观点树存储
-│   ├── tree_default.json     # 默认观点树
-│   └── current_state_snapshot.json # 当前状态快照
-└── core/                      # 核心引擎模块
-    ├── orchestrator.py       # 对话协调引擎
-    ├── first_turn.py         # 首轮对话逻辑
-    └── __init__.py
+├── main.py
+├── log_view_controller.py
+├── run.ipynb
+├── 文件结构说明.txt（本文件）
+│
+├── assets/
+│
+├── config/
+│   ├── api_key.txt          ← 存储你的key
+│   └── settings.yaml
+│
+├── core/
+│   ├── __init__.py
+│   ├── first_turn.py        ← 第一拍开场引擎
+│   └── orchestrator.py      ← 我们刚刚改的数据流总控
+│
+├── data/
+│   ├── current_state_snapshot.json
+│   ├── tree_default.json
+│   ├── logs/
+│   │   └── ...（每天的对话日志，对应 对话_日期.txt）
+│   ├── perspective_trees/
+│   │   └── ...（观点树 JSON）
+│   └── prompt_logs/
+│       ├── llm_prompt_log.txt
+│       └── llm_trigger_log.txt
+│
+├── llm/
+│   ├── __init__.py
+│   └── client.py            ← 所有 LLM 调用入口（role → prompt_map）重要节点
+│
+├── persona/
+│   ├── __init__.py
+│   ├── fast_engine.py       ← Q-Engine（快人格）
+│   ├── slow_engine.py       ← T-Engine（慢人格）
+│   ├── direct_engine.py     ← L-Engine（直答人格）
+│   ├── deep_engine.py        ← D-Engine（描绘人格）
+│   └── sum_engine.py        ← SUM-Engine（总结人格）
+│
+├── state/
+│   ├── __init__.py
+│   ├── history_manager.py   ← 对话历史管理
+│   ├── snapshot_manager.py  ← current_state_snapshot 的读写
+│   └── user_profile.py      ← 用户长期画像
+│
+├── thinking/
+│   ├── __init__.py
+│   ├── behavior_selector.py           ← 现在已经不负责选引擎了，只是历史遗留
+│   ├── guess_engine.py
+│   ├── perspective_generate_engine.py ← 观点树生成引擎
+│   └── perspective_tree.py            ← 运行时观点树结构与操作
+│
+├── trigger/
+│   ├── __init__.py
+│   ├── engine_select_trigger.py       ← ✅ 现在真正的 Q/T/L/SUM 选择器
+│   ├── perspective_move_trigger.py    ← T 引擎内部，决定怎么看树 / 跳节点
+│   ├── state_update_trigger.py        ← 更新 snapshot 的 LLM 触发器
+│   ├── talk_trigger.py                ← “要不要说话”的触发器
+│   └── timing_engine.py               ← 非 LLM 的节奏/冷却引擎
+│
+└── ui/
+    └── __init__.py    ← DearPyGUI 的 UI 逻辑（chat 窗口、娃娃、按钮等）
 ```
 
 ## 数据文件说明
