@@ -83,6 +83,9 @@
    ```
 
 ## 程序运行
+<img width="2076" height="1226" alt="image" src="https://github.com/user-attachments/assets/13ea27a3-3622-445e-8313-6b598cf4a3a1" />
+
+<img width="2076" height="1226" alt="image" src="https://github.com/user-attachments/assets/ba0f6d79-9c1c-4aa2-bf83-bd7b13e04e13" />
 
 ### 界面组成
 
