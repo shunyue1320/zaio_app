@@ -83,9 +83,9 @@
    ```
 
 ## 程序运行
-<img width="2076" height="1226" alt="image" src="https://github.com/user-attachments/assets/13ea27a3-3622-445e-8313-6b598cf4a3a1" />
+<img width="1038" height="613" alt="image" src="https://github.com/user-attachments/assets/13ea27a3-3622-445e-8313-6b598cf4a3a1" />
 
-<img width="2076" height="1226" alt="image" src="https://github.com/user-attachments/assets/ba0f6d79-9c1c-4aa2-bf83-bd7b13e04e13" />
+<img width="1038" height="613" alt="image" src="https://github.com/user-attachments/assets/ba0f6d79-9c1c-4aa2-bf83-bd7b13e04e13" />
 
 ### 界面组成
 
@@ -263,3 +263,10 @@ A: 系统设置 → 隐私与安全性 → 允许运行此应用
 希望它能成为你的思维伙伴，帮助你在纷乱的世界中找到清晰的问题视角。
 
 *"充分的沟通，解决未见之问题。"*
+
+<img width="300" height="300" alt="微信图片_20240427151732" src="https://github.com/user-attachments/assets/34455983-c567-401c-ac99-e1c69a2c1f7c" />
+<img width="300" height="300" alt="9cc53f4294103210ea4117a037fb62fb" src="https://github.com/user-attachments/assets/0190ad25-e4e9-4f0f-87ce-fbac295b2d29" />
+<img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/fe9d4ede-c37d-4806-ba50-46c3196c88d1" />
+
+
+
