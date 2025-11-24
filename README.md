@@ -329,6 +329,449 @@ A: 系统设置 → 隐私与安全性 → 允许运行此应用
 最终推论：
 - 我们要有一个自己的新观念，因此要有观点树，因此，有观点树引擎。
 - 我们的表达可以故意增加描绘，故事，情景假设，等等增加误会又帮到人的可能。因此，有DEEP引擎。
+  
+## 如何玩转这个项目
+---
+
+# 在哦 · 开发者参与指南
+
+下面分几部分说明：
+
+* 如何改 Prompt / 对话风格
+* 如何改存储结构（snapshot / logs / 用户画像 等）
+* 如何扩展新的引擎或模式
+* 如何本地跑起来 & 做最小修改测试
+* 推荐的参与方式清单（轻量 → 中度 → 深度）
+
+---
+
+## 一、如何改 Prompt / 对话风格
+
+### 1. 所有 system prompt 的总入口
+
+**核心文件：**`llm/client.py`
+**关键字段：**`LLMClient.__init__()` 里的 `self.role_prompts = {...}`
+
+这里集中定义了所有角色 / 触发器的 system prompt，包括：
+
+* 人格引擎：
+
+  * `"persona_fast"`：Q-Engine 快人格（轻松闲聊 + 信息收集）
+  * `"persona_slow"`：T-Engine 慢人格（结构化深聊）
+  * `"persona_direct"`：L-Engine 知识引擎（知识讲解）
+  * `"persona_sum"`：Sum-Engine 总结人格
+  * `"persona_deep"`：D-Engine 深度补充人格
+* 触发器：
+
+  * `"trigger_should_speak"`：小触发器，是否继续说话
+  * `"trigger_select_engine"`：选择 Q / T / L / SUM / D 的引擎选择器
+  * `"trigger_state_update"`：根据对话更新 `state_snapshot`
+  * `"trigger_perspective_move"`：T 引擎观点树推进
+  * `"perspective_generate_engine"`：自动生成新的观点树结构
+
+**要改风格 /立场 /语气：**
+→ 直接在 `self.role_prompts` 对应键下修改那大段中文说明即可。
+
+例如：
+
+* 想改 Q-Engine 语气更「毒舌一点」——改 `"persona_fast"` 那一段；
+* 想让 T-Engine 更「哲学向」——改 `"persona_slow"` 那一段；
+* 想让 L-Engine 更像教程/老师——改 `"persona_direct"` 那一段。
+
+> ⚠ 注意：
+>
+> * Prompt 中很多地方会描述输入 JSON 的结构，比如 `user_state` / `snapshot` / `talk_history` 等。
+>   如果你修改了这些字段结构，记得同时更新描述，否则 LLM 会误解。
+> * prompt 只是说明，不要改 `role` 的键名（比如 `persona_fast` 这几个字符串），因为代码里是硬编码用这个名字调用的。
+
+### 2. 每个引擎是怎么调用 prompt 的
+
+人格引擎的调用都很规整：
+
+* 快人格：`persona/fast_engine.py`
+
+  * `FastEngine.respond()` → `self.llm.call_llm("persona_fast", payload, temperature=0.5)`
+* 慢人格：`persona/slow_engine.py`
+
+  * `SlowEngine.deep_reply()` → `self.llm.call_llm("persona_slow", ...)`
+* 知识引擎：`persona/direct_engine.py`
+
+  * `DirectEngine.answer()` → `self.llm.call_llm("persona_direct", ...)`
+* 总结人格：`persona/sum_engine.py`
+
+  * `SumEngine.summarize()` → `self.llm.call_llm("persona_sum", ...)`
+* 深度人格：`persona/deep_engine.py`
+
+  * `DeepEngine.deepen()` → `self.llm.call_llm("persona_deep", ...)`
+
+**如果你只是要改风格**，通常只需要改 `llm/client.py` 的 prompt，
+这些 `persona/*.py` 文件一般不需要动。
+
+### 3. 触发器 prompt 在哪里
+
+触发器的 system prompt 一样也在 `llm/client.py` 的 `self.role_prompts` 里：
+
+* `"trigger_should_speak"`：对应 `trigger/talk_trigger.py` → `TalkTrigger.should_reply(...)`
+* `"trigger_select_engine"`：对应 `trigger/engine_select_trigger.py` → `EngineSelectTrigger.select(...)`
+* `"trigger_state_update"`：对应 `trigger/state_update_trigger.py`
+* `"trigger_perspective_move"`：对应 `trigger/perspective_move_trigger.py`
+* `"perspective_generate_engine"`：对应 `thinking/perspective_generate_engine.py`
+
+如果你想改「何时说话 / 何时切换 Q/T/L/SUM/D」，
+就改 `"trigger_should_speak"` 和 `"trigger_select_engine"` 那两段提示词。
+
+---
+
+## 二、如何改存储结构（Snapshot / Logs / 用户画像）
+
+整个存储层目前是很薄的一层，基本是「随便放 dict」，约束都在 prompt 里。
+
+### 1. 当前状态快照：`current_state_snapshot.json`
+
+**文件：**
+
+* `data/current_state_snapshot.json` —— 当前快照（运行时会被更新）
+* `state/snapshot_manager.py` —— 封装读写
+
+`StateSnapshotManager` 很简单：
+
+```python
+class StateSnapshotManager:
+    def __init__(self, path: str):
+        self.path = path
+        self._data: Dict[str, Any] = {}
+        self.load()
+
+    def get(self) -> Dict[str, Any]:
+        return dict(self._data)
+
+    def update_multi(self, updates: Dict[str, Any]):
+        self._data.update(updates)
+        self.save()
+```
+
+**要点：**
+
+* **没有强 schema 限制**，你可以往 snapshot 里随便加字段；
+* 真正的「约定」存在于：
+
+  * `data/current_state_snapshot.json` 的初始结构
+  * `llm/client.py` 里各个 prompt 中对 snapshot 的描述
+  * `trigger/state_update_trigger.py` 使用的 `"trigger_state_update"` prompt
+
+**如果你要增加新字段（例如：`"workload"`, `"money_anxiety"`）：**
+
+1. 在 `data/current_state_snapshot.json` 里加初始字段；
+2. 修改 `llm/client.py` 里：
+
+   * `"persona_fast"` / `"persona_slow"` 提到 user_state 的解释；
+   * `"trigger_state_update"` 里的字段说明，让 LLM 知道该怎么推断新字段；
+3. 重启程序后，新字段会自动出现在快照里，`StateSnapshotManager` 不用改代码。
+
+### 2. 长期画像：`user_profile.json`
+
+**文件：**
+
+* `data/user_profile.json`
+* `state/user_profile.py` → `UserProfileManager`
+
+结构完全开放，也是一个 dict。
+目前主要被：
+
+* `core/first_turn.py`（FirstTurnEngine）用来在第一次见面时定制开场；
+* 将来可以在触发器 / persona 里引入。
+
+**扩展方式：**
+
+* 想记录「长期偏好」：比如 `{"prefer_night_chat": true, "favorite_topics": ["工作", "创作"]}`
+* 直接在 `user_profile.json` 编辑即可，或者运行中通过 `UserProfileManager.update_multi` 写入。
+
+如果你要在 prompt 里用到这些字段，记得同样要更新相关 prompt 的说明。
+
+### 3. 对话历史 & 文本日志
+
+**结构化对话历史：**
+
+* 管理类：`state/history_manager.py` → `HistoryManager`
+* 存储在内存 `self.history` 中，用于：
+
+  * 触发器 (`trigger/*`)
+  * 人格引擎（Q/T/L/SUM/D）
+
+如果你想改变「历史窗口大小」「时间戳格式」之类，可以在这个文件里改。
+
+**TXT 对话日志：**
+
+* 统一入口：`main.py` → `_append_log(side, text)`
+* 日志路径：`data/logs/对话_YYYYMMDD.txt`
+* 格式：`[时间] [USER/AI] 文本...`（所有换行被压成一行）
+
+你可以：
+
+* 改写 `_append_log()`，比如增加 JSON log 或者更多字段；
+* 或者增加新的日志文件（如 CSV、JSONL）。
+
+**LLM prompt 调试日志：**
+
+* 文件路径：`data/prompt_logs/llm_prompt_log.txt`
+* 写入位置：`llm/client.py` → `_append_trigger_log(...)`
+
+里面会按引擎区分每次的 system prompt / user payload / LLM 回复，方便调试。
+
+### 4. 观点树存储
+
+**文件结构：**
+
+* 默认树：`data/tree_default.json`
+* 生成树目录：`data/perspective_trees/*.json`
+
+管理类：
+
+* `thinking/perspective_tree.py` → `PerspectiveTree`
+* `thinking/perspective_generate_engine.py` → 生成新树 & 落盘
+
+你可以：
+
+* 手动写一棵新树 JSON 放到 `data/perspective_trees`，让程序通过「时光飞逝」或触发器去用；
+* 改 `PerspectiveTree` 的结构，比如支持多层 children、标签等；
+* 改生成引擎的 prompt，控制生成的树风格。
+
+---
+
+## 三、如何扩展新的引擎或模式（加一个「特殊模式」）
+
+这里用一个**示例流程**说明：
+假设你要增加一个新的模式 `"R"`（Reflection-Engine，自我反思人格），大致步骤如下：
+
+### 步骤 1：写一个新的 persona 类
+
+新建文件：`persona/reflection_engine.py`：
+
+```python
+from typing import Dict, Any, List
+from llm.client import LLMClient
+
+class ReflectionEngine:
+    ROLE = "persona_reflection"
+
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
+
+    def reflect(self, user_text: str, user_state: Dict[str, Any], talk_history: List[Dict[str, Any]]) -> str:
+        payload = {
+            "user_text": user_text,
+            "user_state": user_state,
+            "talk_history": talk_history,
+        }
+        reply = self.llm.call_llm(self.ROLE, payload, temperature=0.5)
+        return reply or ""
+```
+
+### 步骤 2：在 `llm/client.py` 里增加对应 prompt
+
+在 `self.role_prompts` 里面加一个条目：
+
+```python
+"persona_reflection": """
+你是“在哦 · 反思人格 R-Engine”。
+（这里写你的角色设定 + 输入 JSON 字段含义 + 输出风格要求）
+""",
+```
+
+同时可以在 `engine_name_human_readable` 映射里加一个说明（方便以后做日志或 UI 展示）：
+
+```python
+self.engine_name_human_readable = {
+    ...
+    "persona_reflection": "R 引擎·反思人格",
+}
+```
+
+### 步骤 3：让引擎选择器认得这个模式
+
+**文件：**`trigger/engine_select_trigger.py`
+
+1. 修改 `LLM` prompt（`"trigger_select_engine"`）的说明文本，让它知道有一个新的模式 `"R"`，并说明什么时候选：
+
+   * 例如：**当用户明确提到要复盘 / 反思 / 总结教训时，选择 R。**
+2. 在解析结果时允许 `"R"`：
+
+```python
+data = json.loads(raw)
+mode = str(data.get("mode") or "Q").upper().strip()
+if mode in ("Q", "T", "L", "SUM", "D", "R"):
+    return mode
+```
+
+### 步骤 4：在 Orchestrator 里接上新引擎
+
+**文件：**`core/orchestrator.py`
+
+1. 引入新类并实例化：
+
+```python
+from persona.reflection_engine import ReflectionEngine
+
+class ConversationOrchestrator:
+    def __init__(...):
+        ...
+        self.reflection_engine = ReflectionEngine(self.llm_client)
+```
+
+2. 在 `_run_behavior(self, mode: str, user_text: str) -> str` 里增加分支：
+
+```python
+if mode == "R":
+    talk_his = self.history_manager.get_talk_his(limit=10)
+    return self.reflection_engine.reflect(
+        user_text=user_text,
+        user_state=user_state,
+        talk_history=talk_his,
+    )
+```
+
+这样当 `EngineSelectTrigger` 返回 `"R"` 时，系统就会调用你的新人格。
+
+> 提示：
+> 你也可以不放进自动选择，而是临时在 `_run_behavior` 里写个硬编码，比如在用户输入中检测某个关键字，然后强行进入 R 引擎。这适合「试验性引擎」。
+
+---
+
+## 四、如何本地跑起来 & 做最小修改测试
+
+### 1. 基本运行步骤
+
+这部分和现有的 `使用说明_简洁版.txt` 一致，简要列一下（给开发者看的版本）：
+
+1. 安装 Python 3.10+
+2. `pip install -r requirements.txt`
+3. 在 `config/api_key.txt` 里填入可用的 DeepSeek API Key
+4. 命令行进入项目根目录（包含 `main.py` 的那个文件夹）：
+
+   ```bash
+   python main.py
+   ```
+5. 会弹出一个固定大小的 UI 窗口：
+
+   * 左侧：在哦娃娃 + 背景
+   * 中间：聊天区（粉色 = 在哦，青色 = 用户）
+   * 右侧：分析区 + 日志查看按钮等
+
+### 2. 做「最小修改」的推荐流程
+
+**（1）只改 prompt 看效果**
+
+* 改动文件：`llm/client.py` 中某个 `role_prompts[...]`
+* 保存文件，重新运行 `python main.py`
+* 在 UI 里直接聊几句，看：
+
+  * Q 模式：随便说「在吗」「睡了没」这一类，观察开场语气；
+  * T 模式：说一些「我最近有点烦」+「帮我理理」看看结构；
+  * L 模式：问「帮我科普一下 Markdown 换行」。
+
+**（2）修改 snapshot 结构的最小闭环测试**
+
+* 在 `data/current_state_snapshot.json` 里加一个新字段，比如 `"stress_level": "等待发掘"`；
+* 在 `llm/client.py` 的 `"trigger_state_update"` prompt 中，
+
+  * 增加对 `stress_level` 的解释；
+* 重启后随便聊几句，
+
+  * 看控制台是否有报错；
+  * 打开 `data/current_state_snapshot.json`，确认新字段被写入。
+
+**（3）加一个新模式的快速冒烟测试**
+
+* 按上面「扩展新引擎」的步骤新增一个 `R` 模式；
+* 在 `trigger/engine_select_trigger.py` 里，先简陋一点：
+
+  * 如果 `user_text` 里出现「反思」两个字，就强行返回 `"R"`；
+* 重启后输入「我想反思一下今天的事」，
+
+  * 看终端 log / `data/prompt_logs/llm_prompt_log.txt`，
+  * 确认引擎选择为 `"R"`，且返回内容来自新 prompt。
+
+---
+
+## 五、推荐的『参与方式清单』
+
+最后，可以直接给其他开发者一个「参与菜单」：
+
+### 1. 轻量玩法：**只改 Prompt / 对话风格**
+
+适合：
+
+* 想玩「人格调教」「话术风格」的同学；
+* 不想碰太多 Python 逻辑。
+
+推荐入口：
+
+* `llm/client.py` → `self.role_prompts`
+
+  * 修改各人格的说话风格、禁忌、输出长度；
+  * 修改各触发器的逻辑偏好（比如更积极、更佛系）。
+* 查看效果：
+
+  * 运行 `main.py`，观察不同场景下的回答变化；
+  * 若需要精细调试，看 `data/prompt_logs/llm_prompt_log.txt`。
+
+### 2. 中度玩法：**改数据结构 / 存储逻辑**
+
+适合：
+
+* 对「用户画像」「状态快照」「日志」有自己一套想法；
+* 想接入自己的数据分析、可视化工具。
+
+推荐入口：
+
+* `state/snapshot_manager.py` + `data/current_state_snapshot.json`
+
+  * 加字段、改状态结构，让在哦能识别更多维度。
+* `state/user_profile.py` + `data/user_profile.json`
+
+  * 设计一个更丰富的长期画像结构。
+* `state/history_manager.py`
+
+  * 改历史长度、调整时间戳格式、扩展字段。
+* `main.py` → `_append_log`
+
+  * 改 TXT 日志格式，或者加一个 JSON 日志方案。
+* 同时配合改：
+
+  * `llm/client.py` 中与这些字段相关的 prompt；
+  * `trigger/state_update_trigger.py` 的字段更新逻辑说明。
+
+### 3. 深度玩法：**加新引擎 / 改触发器 / 改 UI**
+
+适合：
+
+* 想把这个框架当成「自家对话 OS」来玩；
+* 愿意深入 orchestrator / trigger / UI 结构。
+
+推荐方向：
+
+1. **新引擎 / 新模式**
+
+   * 新建 `persona/xxx_engine.py`
+   * 在 `llm/client.py` 注册新 `role_prompt`
+   * 在 `trigger/engine_select_trigger.py` 里加入新模式的选择策略
+   * 在 `core/orchestrator.py` 的 `_run_behavior()` 中接入。
+
+2. **改触发器逻辑**
+
+   * `trigger/talk_trigger.py`：什么时候继续说话 / 闭嘴；
+   * `trigger/engine_select_trigger.py`：不同场景下选择 Q/T/L/SUM/D；
+   * `trigger/perspective_move_trigger.py`：T 模式下的节点推进策略；
+   * `thinking/perspective_generate_engine.py`：自动生成观点树的规则。
+
+3. **改 UI 行为**
+
+   * `main.py`：窗口布局 / 聊天气泡 / 滚动条样式等；
+   * `log_view_controller.py`：在右侧增加更多开发者调试工具（比如在线查看 snapshot / user_profile）。
+
+---
+
+
 ## 愿景
 
 > "既然三生了万物，那这个万物里面可能包含有 AGI，这是我们的奢望。"
