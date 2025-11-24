@@ -47,20 +47,20 @@ https://www.bilibili.com/video/BV1eXyHBaEJY/?spm_id_from=333.1387.homepage.video
    # core/          - 核心引擎模块
    ```
 
-2. **创建虚拟环境**
-
-   使用 uv（推荐）：
-   ```bash
-   uv venv
-   source .venv/bin/activate  # macOS/Linux
-   # 或
-   .venv\Scripts\activate     # Windows
-   ```
+2. **创建虚拟环境（可跳过使用默认环境）**
 
    或使用 pip：
    ```bash
    python -m venv .venv
    source .venv/bin/activate  # macOS/Linux
+   ```
+
+   使用 uv：
+   ```bash
+   uv venv
+   source .venv/bin/activate  # macOS/Linux
+   # 或
+   .venv\Scripts\activate     # Windows
    ```
 
 3. **安装依赖**
