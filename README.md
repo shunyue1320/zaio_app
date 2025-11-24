@@ -800,5 +800,154 @@ if mode == "R":
 <img width="300" height="300" alt="9cc53f4294103210ea4117a037fb62fb" src="https://github.com/user-attachments/assets/0190ad25-e4e9-4f0f-87ce-fbac295b2d29" />
 <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/fe9d4ede-c37d-4806-ba50-46c3196c88d1" />
 
+# 🇺🇸 **For English Developers: How to Understand and Work With This Project Using AI**
+
+This project is primarily documented in Chinese.
+If you are an English-speaking developer, **don’t worry**—you can use ChatGPT (or any modern AI assistant) to fully understand every part of this repository without needing to know Chinese.
+
+Below is a simple guide to help you do that effectively.
+
+---
+
+## ✅ **1. Load the entire project into ChatGPT**
+
+When you want AI to help you understand or translate the repo:
+
+1. Compress the entire project into a ZIP file
+2. Upload it into ChatGPT
+3. Use this prompt:
+
+```
+I’m an English-speaking developer. Please analyze this entire project.
+Explain all code, architecture, folder structure, and design concepts in English.
+Translate (but do not rewrite) all Chinese comments or documentation.
+Act as my technical guide for this repo.
+```
+
+This lets the AI build a mental map of the repo and help you navigate it.
+
+---
+
+## ✅ **2. Ask ChatGPT to “convert the entire project into English”**
+
+If you want your own English version of the repo:
+
+```
+Convert this entire project to English.
+– Translate all comments to English
+– Translate all documentation to English
+– Keep variable names and code logic unchanged
+– Preserve the folder structure
+– Output a downloadable ZIP file with the translated content
+```
+
+ChatGPT will give you a full English clone of the project.
+This is extremely useful for teams with bilingual developers.
+
+---
+
+## ✅ **3. Ask ChatGPT to explain any Chinese file or function**
+
+Example:
+
+```
+Explain this file in English.
+Tell me:
+1) What it does
+2) How it fits into the overall system
+3) What each function is responsible for
+4) What I can modify safely
+```
+
+Or for a function:
+
+```
+Explain this function in English.  
+What does it do? Why does it exist? How does it interact with other modules?
+```
+
+---
+
+## ✅ **4. Ask for an English mental model of the architecture**
+
+```
+Give me a high-level English explanation of this project:
+– How does information flow?
+– What is the role of Orchestrator?
+– What do the triggers do?
+– What are the personas?
+– How does the state snapshot work?
+– How does the perspective tree influence conversation?
+```
+
+You will receive a complete architectural description in English.
+
+---
+
+## ✅ **5. Ask ChatGPT to generate English onboarding materials**
+
+For example:
+
+```
+Create an English onboarding guide for a new developer joining this project.
+Explain:
+– Key modules
+– What to read first
+– How to run the project
+– How to modify behavior
+– Where the extension points (hooks) are
+```
+
+Or:
+
+```
+Create an English summary of how to contribute to this project.
+```
+
+This is perfect for open-source contributors.
+
+---
+
+## ✅ **6. Ask ChatGPT to be your "English project mentor"**
+
+```
+From now on, act as my project mentor.
+Whenever I paste a file, explain:
+– What it does
+– How it connects to the system
+– Where it is called
+– Whether I can modify it
+– How to extend it
+```
+
+This is extremely valuable for new developers joining the team.
+
+---
+
+## ✅ **7. Ask ChatGPT to generate English diagrams**
+
+```
+Generate an English architecture diagram (Mermaid) for this project.
+```
+
+Or:
+
+```
+Summarize the system in a simple English sequence diagram.
+```
+
+Or:
+
+```
+Translate this Chinese Mermaid diagram into English.
+```
+
+---
+
+# ⭐ FINAL NOTE
+
+**You can use AI as a universal translator + technical mentor + architecture guide.**
+Even if the codebase is in Chinese, English-speaking developers can fully navigate, modify, and extend the system using the prompts above.
+
 
 
