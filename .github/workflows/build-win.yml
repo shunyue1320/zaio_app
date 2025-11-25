@@ -32,10 +32,11 @@ jobs:
       - name: Build Windows app with PyInstaller
         shell: bash
         run: |
-          pyinstaller main.py \
+          pyinstaller --clean main.py \
             --name zaio \
             --windowed \
             --noconfirm \
+            --collect-all dearpygui \
             --add-data "assets;assets" \
             --add-data "config;config" \
             --add-data "data;data" \

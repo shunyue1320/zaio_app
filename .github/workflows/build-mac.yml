@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: macos-13  # Intel 架构，兼容性更高（ARM 可通过 Rosetta 运行）
 
     steps:
       - name: Checkout code
@@ -30,10 +30,11 @@ jobs:
 
       - name: Build macOS app with PyInstaller
         run: |
-          pyinstaller main.py \
+          pyinstaller --clean main.py \
             --name zaio \
             --windowed \
             --noconfirm \
+            --collect-all dearpygui \
             --add-data "assets:assets" \
             --add-data "config:config" \
             --add-data "data:data" \
