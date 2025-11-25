@@ -1,0 +1,70 @@
+name: Build macOS App
+
+on:
+  push:
+    tags:
+      - 'v*'   # 打 tag 时触发（如 v1.0.0）
+  workflow_dispatch: # 允许手动触发
+
+permissions:
+  contents: write  # 用于上传 release 资源
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build macOS app with PyInstaller
+        run: |
+          pyinstaller main.py \
+            --name zaio \
+            --windowed \
+            --noconfirm \
+            --add-data "assets:assets" \
+            --add-data "config:config" \
+            --add-data "data:data" \
+            --add-data "persona:persona" \
+            --add-data "thinking:thinking" \
+            --add-data "state:state" \
+            --add-data "trigger:trigger" \
+            --add-data "core:core" \
+            --add-data "ui:ui" \
+            --add-data "llm:llm"
+
+      - name: Create DMG installer
+        run: |
+          APP_PATH="dist/zaio.app"
+          DMG_PATH="dist/zaio-mac.dmg"
+          mkdir -p dist/dmg
+          rm -f "$DMG_PATH"
+          cp -R "$APP_PATH" dist/dmg/zaio.app
+          hdiutil create -volname "Zaio" -srcfolder "dist/dmg" -ov -format UDZO "$DMG_PATH"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zaio-mac
+          path: dist/zaio-mac.dmg
+
+      # ----- 发布 Release -----
+      - name: Upload DMG to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/zaio-mac.dmg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
